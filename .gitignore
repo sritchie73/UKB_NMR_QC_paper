@@ -1,0 +1,4 @@
+.*.swp
+*.Rproj
+data/
+src/ukbtools/
