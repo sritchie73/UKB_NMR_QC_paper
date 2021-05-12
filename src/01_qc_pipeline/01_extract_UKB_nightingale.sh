@@ -10,3 +10,4 @@ mkdir -p $outdir
   -o"$outdir/nightingale" \
   -i"$indir/fields.ukb"
 
+rm fields.ukb
