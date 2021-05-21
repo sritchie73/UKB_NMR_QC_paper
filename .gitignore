@@ -2,3 +2,4 @@
 *.Rproj
 data/
 src/ukbtools
+diagnostic_plots/
