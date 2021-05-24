@@ -11,9 +11,10 @@ options(ggrastr.default.dpi=1200)
 if (!dir.exists("paper_output")) dir.create("paper_output")
 
 # Load data with adjusted values at each step
+dat <- fread("data/tech_qc/multistep_adjusted_values.txt")
 
 # Load technical information and filter to samples in
-# UKB adj5 data
+# UKB raw data
 sinfo <- fread("data/tech_qc/sample_information.txt")
 sinfo <- sinfo[!(sample_removed) & (in_ukb_raw)]
 dat <- dat[sinfo[,.(sample_id, visit)], on = .(sample_id, visit)]
