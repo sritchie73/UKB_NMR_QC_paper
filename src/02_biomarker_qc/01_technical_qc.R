@@ -279,11 +279,11 @@ fwrite(flags, sep="\t", quote=FALSE, file="data/tech_qc/biomarker_QC_flags.txt")
 # - Additional sample flags, e.g. whether the sample was removed during our QC (and why),
 #   sample QC flags, whether the sample belonged to a blind duplicate (eid_7439 visit combination),
 #   and whether the sample is present in the released UKB raw data
-
 sinfo <- fread("data/raw/processed/harmonized_sample_information.txt")
-sinfo <- sinfo[,.(raw_row_id=uid, eid_7439, visit, sample_id, plate_id, plate_position, spectrometer, 
+sinfo[, plate_measured_bin := bin_duration(as.integer(factor(plate_MEASURED_DAYS))), by=spectrometer]
+sinfo <- sinfo[,.(raw_row_id=uid, eid_7439, Gender, visit, sample_id, plate_id, plate_position, spectrometer, 
                   plate_row=well_row, plate_column=well_column,
-                  sample_degredation_time=prep_to_measured, plate_MEASURED_DATE, 
+                  sample_degredation_time=prep_to_measured, plate_MEASURED_DATE, plate_measured_bin,
                   QC_flag=tag, sample_removed=removed, removal_reason,
                   blind_duplicate, in_ukb_raw=ifelse(in_ukb_raw == "No biomarkers", FALSE, TRUE))]
 sinfo[, QC_flag := gsub(";", "; ", gsub("_", " ", QC_flag))]
