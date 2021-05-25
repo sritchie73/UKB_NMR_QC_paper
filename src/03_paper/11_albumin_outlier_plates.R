@@ -1,6 +1,12 @@
 library(data.table)
 library(ggplot2)
+library(ggrastr)
 library(cowplot)
+
+options(ggrastr.default.dpi=1200)
+
+# Create output directory
+if (!dir.exists("paper_output")) dir.create("paper_output")
 
 # Load data with adjusted values at each step
 dat <- fread("data/tech_qc/multistep_adjusted_values.txt")
@@ -42,20 +48,20 @@ gg_low_outlier <- plate_summary[outlier == "low"]
 
 # Plot plates vs outlier tags:
 g1 <- ggplot(plate_summary, aes(x=factor(plate_order))) +
-	geom_point(data=gg_no_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#525252") +
-	geom_point(data=gg_no_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#525252") +
-	geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252") +
-	geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252") +
+	rasterize(geom_point(data=gg_no_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#525252")) +
+	rasterize(geom_point(data=gg_no_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#525252")) +
+	rasterize(geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252")) +
+	rasterize(geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252")) +
 
-	geom_point(data=gg_high_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#a50f15") +
-	geom_point(data=gg_high_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#a50f15") +
-	geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15") +
-	geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15") +
+	rasterize(geom_point(data=gg_high_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#a50f15")) +
+	rasterize(geom_point(data=gg_high_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#a50f15")) +
+	rasterize(geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15")) +
+	rasterize(geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15")) +
 
-	geom_point(data=gg_low_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#08519c") +
-	geom_point(data=gg_low_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#08519c") +
-	geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c") +
-	geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c") +
+	rasterize(geom_point(data=gg_low_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#08519c")) +
+	rasterize(geom_point(data=gg_low_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#08519c")) +
+	rasterize(geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c")) +
+	rasterize(geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c")) +
 
 	geom_hline(data=outlier_lim, aes(yintercept=lower_lim), color="#dd1c77", linetype=2, size=0.2) +
 	geom_hline(data=outlier_lim, aes(yintercept=upper_lim), color="#dd1c77", linetype=2, size=0.2) +
@@ -70,14 +76,14 @@ g1 <- ggplot(plate_summary, aes(x=factor(plate_order))) +
 
 # Zoom in on interquartile range
 g2 <- ggplot(plate_summary, aes(x=factor(plate_order))) +
-  geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252") +
-  geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252") +
+  rasterize(geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252")) +
+  rasterize(geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252")) +
 
-  geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15") +
-  geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15") +
+  rasterize(geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15")) +
+  rasterize(geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15")) +
 
-  geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c") +
-  geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c") +
+  rasterize(geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c")) +
+  rasterize(geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c")) +
 
   geom_hline(data=outlier_lim, aes(yintercept=lower_lim), color="#dd1c77", linetype=2, size=0.2) +
   geom_hline(data=outlier_lim, aes(yintercept=upper_lim), color="#dd1c77", linetype=2, size=0.2) +
@@ -117,14 +123,14 @@ gg_low_outlier <- plate_summary[outlier == "low"]
 
 # Zoom in on interquartile range
 g3 <- ggplot(plate_summary, aes(x=factor(plate_order))) +
-  geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252") +
-  geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252") +
+  rasterize(geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252")) +
+  rasterize(geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252")) +
 
-  geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15") +
-  geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15") +
+  rasterize(geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15")) +
+  rasterize(geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15")) +
 
-  geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c") +
-  geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c") +
+  rasterize(geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c")) +
+  rasterize(geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c")) +
 
   ylab("Clin.Albumin (g/L)") + xlab("Plate\n(chronological order)") +
   theme_bw() +
@@ -168,14 +174,14 @@ g4 <- ggplot(cntrl, aes(x=factor(plate_order), shape=factor(control_sample))) +
 			"180830 (Well A01)"=5, "180831 (Well H12)"=23
 		)) +
 
-	geom_point(data=gg_no_outlier[plate_position == "H12"], aes(y=value), color="black", size=0.45, stroke=0.2, fill="#525252") +
-	geom_point(data=gg_no_outlier[plate_position == "A01"], aes(y=value), color="#525252", size=0.45, stroke=0.2) +
+	rasterize(geom_point(data=gg_no_outlier[plate_position == "H12"], aes(y=value), color="black", size=0.45, stroke=0.2, fill="#525252")) +
+	rasterize(geom_point(data=gg_no_outlier[plate_position == "A01"], aes(y=value), color="#525252", size=0.45, stroke=0.2)) +
 
-	geom_point(data=gg_high_outlier[plate_position == "H12"], aes(y=value), color="black", size=0.45, stroke=0.2, fill="#a50f15") +
-	geom_point(data=gg_high_outlier[plate_position == "A01"], aes(y=value), color="#a50f15", size=0.45, stroke=0.2) +
+	rasterize(geom_point(data=gg_high_outlier[plate_position == "H12"], aes(y=value), color="black", size=0.45, stroke=0.2, fill="#a50f15")) +
+	rasterize(geom_point(data=gg_high_outlier[plate_position == "A01"], aes(y=value), color="#a50f15", size=0.45, stroke=0.2)) +
 
-	geom_point(data=gg_low_outlier[plate_position == "H12"], aes(y=value), color="black", size=0.45, stroke=0.2, fill="#08519c") +
-	geom_point(data=gg_low_outlier[plate_position == "A01"], aes(y=value), color="#08519c", size=0.45, stroke=0.2) +
+	rasterize(geom_point(data=gg_low_outlier[plate_position == "H12"], aes(y=value), color="black", size=0.45, stroke=0.2, fill="#08519c")) +
+	rasterize(geom_point(data=gg_low_outlier[plate_position == "A01"], aes(y=value), color="#08519c", size=0.45, stroke=0.2)) +
 
 	ylab(paste0("Albumin (g/L)")) +
 	xlab("Plate\n(chronological order)") +
