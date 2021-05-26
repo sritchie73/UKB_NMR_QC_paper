@@ -78,9 +78,9 @@ g4 <- ggplot(dat) +
 
 g5 <- ggplot(dat) +
   geom_density(aes(x=raw), trim=TRUE, color="#e08214", size=0.4) +
-  geom_density(aes(x=postqc), trim=TRUE, color="#542788", size=0.4) +
+  geom_density(aes(x=adj4), trim=TRUE, color="#542788", size=0.4) +
   scale_y_continuous(name="Density") +
-  scale_x_continuous(name="postqc") +
+  scale_x_continuous(name="adj4") +
   theme_bw() + 
 	theme(axis.text.x=element_text(size=6), axis.title.x=element_text(size=7),
 			axis.text.y=element_text(size=6), axis.title.y=element_text(size=7),
@@ -88,7 +88,7 @@ g5 <- ggplot(dat) +
   ) 
 
 g6 <- ggplot(dat) +
-  aes(x = raw, y = postqc) +
+  aes(x = raw, y = adj4) +
   rasterize(geom_point(shape=21, size=0.45, stroke=0.2, color="black", fill="white")) +
   geom_abline(intercept=0, slope=1, linetype=2, color="red", size=0.4) +
   scale_x_continuous(name="Raw (mmol/L)", limits=c(0, 8.5)) +
