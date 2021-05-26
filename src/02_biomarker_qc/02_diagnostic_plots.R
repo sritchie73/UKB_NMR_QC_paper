@@ -847,3 +847,111 @@ cntrl[outlier_shift, on = .(variable), value := value - shift]
 
 internal_controls("diagnostic_plots/internal_control_samples_log_outlier_plates.png")
 
+# For biomarkers also present in the clinical biochemistry, do the outlier plates
+# appear as outliers?
+clin <- fread("data/my_curated_phenotypes/biomarkers/output/biomarkers_fixed_limits.txt")
+
+# Create map between blood biochemistry and Nightingale biomarkers
+map <- rbind(use.names=FALSE,
+  data.table(clin_var="tchol", clin_name="Total cholesterol", clin_units="mmol/L",
+             nightingale_var="Total_C", nightingale_name="Total cholesterol", nightingale_units="mmol/L"),
+  data.table("ldl", "LDL cholesterol", "mmol/L", "Clinical_LDL_C", "Clinical LDL cholesterol", "mmol/L"),
+  data.table("ldl", "LDL cholesterol", "mmol/L", "LDL_C", "LDL cholesterol", "mmol/L"),
+  data.table("hdl", "HDL cholesterol", "mmol/L", "HDL_C", "HDL cholesterol", "mmol/L"),
+  data.table("trig", "Total triglycerides", "mmol/L", "Total_TG", "Total triglycerides", "mmol/L"),
+  data.table("apoa1", "Apolipoprotein A1", "g/L", "ApoA1", "Apolipoprotein A1", "g/L"),
+  data.table("apob", "Apolipoprotein B", "g/L", "ApoB", "Apolipoprotein B", "g/L"),
+  data.table("glucose1", "Glucose", "mmol/L", "Glucose", "Glucose", "mmol/L"),
+  data.table("creat", "Creatinine", "umol/L", "Creatinine", "Creatinine", "mmol/L"),
+  data.table("alb", "Albumin", "g/L", "Albumin", "Albumin", "g/L"),
+  data.table("nonhdl", "Non HDL Cholesterol", "mmol/L", "non_HDL_C", "Non HDL Cholesterol", "mmol/L"),
+  data.table("apobapoa1", "ApoB / ApoA1", "ratio", "ApoB_by_ApoA1", "ApoB / ApoA1", "ratio")
+)
+
+clin <- clin[variable %in% map$clin_var]
+clin[, visit := ifelse(visit == 0, "Main Phase", "Repeat Assessment")]
+clin[sinfo[!(sample_removed) & (in_ukb_raw)], on = .(eid=eid_7439, visit), c("plate_id", "plate_MEASURED_DATE") := .(plate_id, plate_MEASURED_DATE)]
+clin <- clin[!is.na(plate_id)]
+clin[map, on = .(variable=clin_var), c("nightingale_var", "clin_name") := .(nightingale_var, clin_name)]
+
+plate_outliers <- copy(plate_medians)
+plate_outliers[outlier == "no", outlier := NA_character_]
+plate_outliers <- dcast(plate_outliers, plate_id ~ variable, value.var="outlier")
+plate_outliers <- ukbnmr::recompute_derived_biomarker_qc_flags(plate_outliers)
+plate_outliers <- melt(plate_outliers, id.vars="plate_id")
+plate_outliers <- plate_outliers[variable %in% map$nightingale_var & !is.na(value)]
+plate_outliers[,tag := paste(unique(gsub("^.*: ", "", strsplit(value, "\\.")[[1]])), collapse=";"), by=.(plate_id, variable)]
+plate_outliers[tag == "high;low", tag := "high"] # Total_TG, 9 lipo-protein sub fractions are high outliers, 1 is low (XXL_VLDL_TG), 4 not outliers.
+
+clin[, outlier := "no"]
+clin[plate_outliers, on = .(nightingale_var=variable, plate_id), outlier := tag]
+
+# Compute summary per plate
+plate_summary <- clin[, .(metric=names(summary(value)), value=as.vector(summary(value))), by=.(clin_name, plate_id, plate_MEASURED_DATE, outlier)]
+plate_summary <- dcast(plate_summary, clin_name + plate_id + plate_MEASURED_DATE + outlier ~ metric, value.var="value")
+setnames(plate_summary, c("1st Qu.", "3rd Qu.", "Max.", "Min."), c("Q25", "Q75", "Max", "Min"))
+
+# Order plates by measurement date
+plate_summary <- plate_summary[order(plate_MEASURED_DATE)]
+plate_summary[, plate_order := 1:.N]
+
+# Split into three color groups
+gg_no_outlier <- plate_summary[outlier == "no"]
+gg_high_outlier <- plate_summary[outlier == "high"]
+gg_low_outlier <- plate_summary[outlier == "low"]
+
+# How many biomarkers?
+n_bio <- clin[, length(unique(variable))]
+n_col <- ceiling(sqrt(n_bio))
+width <- n_col * 2
+
+# Show with min and max
+g <- ggplot(plate_summary, aes(x=factor(plate_order))) +
+  geom_point(data=gg_no_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#525252") +
+  geom_point(data=gg_no_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#525252") +
+  geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252") +
+  geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252") +
+
+  geom_point(data=gg_high_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#a50f15") +
+  geom_point(data=gg_high_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#a50f15") +
+  geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15") +
+  geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15") +
+
+  geom_point(data=gg_low_outlier, aes(y=Min), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#08519c") +
+  geom_point(data=gg_low_outlier, aes(y=Max), shape=1, size=0.3, stroke=0.15, alpha=0.5, color="#08519c") +
+  geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c") +
+  geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c") +
+
+  facet_wrap(~ clin_name, scales="free", ncol=n_col) +
+	ylab("Clinical chemistry concentration") +
+	xlab("Plate\n(chronological order)") +
+	theme_bw() +
+	theme(axis.text=element_text(size=6), axis.title=element_text(size=10),
+				axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+				strip.background=element_blank(), strip.text=element_text(size=6),
+				panel.grid.major=element_blank(), panel.grid.minor=element_blank()
+	)
+ggsave(g, width=width, height=width, units="in", file="diagnostic_plots/clinical_chemistry_vs_nmr_outlier_plates.png")
+
+
+# Zoom in on IQR
+g <- ggplot(plate_summary, aes(x=factor(plate_order))) +
+  geom_errorbar(data=gg_no_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#525252") +
+  geom_point(data=gg_no_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#525252") +
+
+  geom_errorbar(data=gg_high_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#a50f15") +
+  geom_point(data=gg_high_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#a50f15") +
+
+  geom_errorbar(data=gg_low_outlier, aes(ymin=Q25, ymax=Q75), width=0, size=0.1, color="#08519c") +
+  geom_point(data=gg_low_outlier, aes(y=Median), color="black", shape=21, size=0.45, stroke=0.2, fill="#08519c") +
+
+  facet_wrap(~ clin_name, scales="free", ncol=n_col) +
+	ylab("Clinical chemistry concentration") +
+	xlab("Plate\n(chronological order)") +
+	theme_bw() +
+	theme(axis.text=element_text(size=6), axis.title=element_text(size=10),
+				axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+				strip.background=element_blank(), strip.text=element_text(size=6),
+				panel.grid.major=element_blank(), panel.grid.minor=element_blank()
+	)
+ggsave(g, width=width, height=width, units="in", file="diagnostic_plots/clinical_chemistry_vs_nmr_outlier_plates_iqr_zoom.png")
