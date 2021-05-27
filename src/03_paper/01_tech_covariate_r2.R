@@ -156,14 +156,14 @@ tech_r2[, pct := r2 * 100]
 # Get row and column order
 tech_r2[, data := factor(data, levels=c("Raw data", "Post-QC data", "Post-QC data excluding outlier plates"))]
 tech_r2[, print_name := factor(print_name, levels=rev(c(
+    "Tecan aliquoting robot", "Tecan aliquot tip",
+    "96-well plate (drift over time)", "Well position (A2-H11)", "Well row (A-H)", "Well column (1-12)",
     "Shipping batch", "Date sample dispatched from UK Biobank", "Time of day sample dispatched from UK Biobank",
     "Date sample arrived at Nightingale", "Time of day sample arrived at Nightingale", "Time taken to ship from UK Biobank to Nightingale Health",
-    "96-well plate (drift over time)", "Well position (A2-H11)", "Well row (A-H)", "Well column (1-12)", 
     "Date sample frozen", "Time of day sample frozen", "Time between sample arrival and freezing",
     "Date sample defrosted", "Time of day sample defrosted", "Time sample frozen for",
     "Date sample centrifuged", "Time of day sample centrifuged", "Time between sample defrosting and centrifugation",
     "Date sample prepared", "Time of day sample prepared", "Time between sample centrifugation and sample preparation",
-    "Tecan aliquoting robot", "Tecan aliquot tip",
     "Date sample measured", "Time of day sample measured", "Time between sample preparation and measurement",
     "Spectrometer"
   )))]
