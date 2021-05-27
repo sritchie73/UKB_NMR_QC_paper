@@ -1,4 +1,5 @@
 library(data.table)
+library(ukbnmr)
 library(foreach)
 library(doMC)
 library(ggplot2)
@@ -39,8 +40,8 @@ g <- ggplot(bio_miss) +
 ggsave(width=3.6, height=1.3, file="paper_output/postqc_biomarker_missingness.pdf")
 
 # Now in raw data
-sample_miss <- dat[,.(N=sum(is.na(raw)), pct=sum(is.na(raw))/.N*100),by=.(eid_7439, visit)]
-bio_miss <- dat[,.(N=sum(is.na(raw)), pct=sum(is.na(raw))/.N*100), by=variable]
+sample_miss <- dat[variable %in% nmr_info[(Nightingale), Biomarker],.(N=sum(is.na(raw)), pct=sum(is.na(raw))/.N*100),by=.(eid_7439, visit)]
+bio_miss <- dat[variable %in% nmr_info[(Nightingale), Biomarker],.(N=sum(is.na(raw)), pct=sum(is.na(raw))/.N*100), by=variable]
 
 # Create density plots
 g <- ggplot(sample_miss) + 
