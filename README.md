@@ -27,6 +27,10 @@ Scripts located under `src/02_biomarker_qc/` do the following:
 
 Scripts located under `src/03_paper/` generate figures and tables for the paper, including downstream analyses (e.g. example GWAS). Scripts are numbered sequentially, and generally correspond to the order of figures and tables (main and supp) as presented in the paper. Some figures may have components from multiple scripts.
 
+### 4. Scripts to check ukbnmr R package and new UK Biobank releases
+
+The script `src/04_pkg_sanity_check/01_pkg_sanity_check.R` sanity checks the results of using the [ukbnmr](https://github.com/sritchie73/ukbnmr) R package to adjust raw data released from UK Biobank for technical variation, particularly as the data released by UK Biobank differs in sample content from the pre-release data: blind duplicate samples are not included, and sample inclusion may change over time due to participant withdrawals.
+
 #### Utility functions
 
 Scripts stored in `src/utilities/` contain general purpose functions which may be called from other scripts above. Currently the only script is `logit.R` which contains functions for performing logit transformation (the analog of log transformation for percentages) and for inversing the function (so that logit distributions may be converted back to % units).
