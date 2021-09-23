@@ -5,3 +5,4 @@ src/ukbtools
 diagnostic_plots/
 paper_output/
 gwas/
+pkg_check/
