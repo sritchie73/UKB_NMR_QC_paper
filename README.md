@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/409672778.svg)](https://zenodo.org/badge/latestdoi/409672778)
+
 # Quality control and removal of technical variation of NMR metabolic biomarker data in ~120,000 UK Biobank participants
 
 This repository houses code used to identify and remove technical variation form the NMR metabolic biomarker data currently (2021) available in ~120,000 UK Biobank participants. For details, please see our preprint at TO BE RELEASED.
