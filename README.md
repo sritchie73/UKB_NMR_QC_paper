@@ -2,7 +2,7 @@
 
 # Quality control and removal of technical variation of NMR metabolic biomarker data in ~120,000 UK Biobank participants
 
-This repository houses code used to identify and remove technical variation form the NMR metabolic biomarker data currently (2021) available in ~120,000 UK Biobank participants. For details, please see our preprint at TO BE RELEASED.
+This repository houses code used to identify and remove technical variation form the NMR metabolic biomarker data currently (2021) available in ~120,000 UK Biobank participants. For details, please see our preprint, Ritchie S. C. *et al.*, Quality control and removal of technical variation of NMR metabolic biomarker data in ~120,000 UK Biobank participants, **medRxiv** (2021). doi: [10.1101/2021.09.24.21264079](https://www.medrxiv.org/content/10.1101/2021.09.24.21264079v1).
 
 ## Source code organisation
 
