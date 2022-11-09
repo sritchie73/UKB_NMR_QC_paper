@@ -3,6 +3,7 @@ library(ukbnmr)
 library(MASS)
 library(foreach)
 library(ggplot2)
+library(hexbin)
 library(ggrastr)
 library(cowplot)
 library(rcartocolor)
@@ -13,14 +14,14 @@ options(ggrastr.default.dpi=1200)
 # Create output directory
 if (!dir.exists("paper_output")) dir.create("paper_output")
 
-# Load data
-dat <- fread("data/tech_qc/multistep_adjusted_values.txt")
-
-# Load technical information and filter to samples in
-# UKB raw data
-sinfo <- fread("data/tech_qc/sample_information.txt")
-sinfo <- sinfo[!(sample_removed) & (in_ukb_raw)]
-dat <- dat[sinfo[,.(sample_id, visit)], on = .(sample_id, visit)]
+##' # Load data
+##' dat <- fread("data/tech_qc/multistep_adjusted_values.txt")
+##' 
+##' # Load technical information and filter to samples in
+##' # UKB raw data
+##' sinfo <- fread("data/tech_qc/sample_information.txt")
+##' sinfo <- sinfo[!(sample_removed) & (in_ukb_raw)]
+##' dat <- dat[sinfo[,.(sample_id, visit)], on = .(sample_id, visit)]
 
 # Show example where biomarker concentrations differ after adjustment
 gg_dt <- dat[variable == "XXL_VLDL_PL_pct" & !is.na(adj4) & !is.na(adj4_no_rederive) & !is.na(adj5)]
@@ -40,7 +41,7 @@ g1 <- ggplot(gg_dt) +
 
 # Show effects of sample degradation time on XL_HDL_L
 effects <- foreach(var = c("XL_HDL_FC", "XL_HDL_CE", "XL_HDL_PL", "XL_HDL_TG"), .combine=rbind) %do% {
-  l1 <- rlm(scale(log(raw)) ~ sample_degredation, data=dat[variable == var])
+  l1 <- rlm(scale(log(raw)) ~ log(sample_degredation), data=dat[variable == var])
   cf <- coef(summary(l1))
   ci <- confint.default(l1)
   data.table(variable = var, beta = cf[2,1], l95 = ci[2,1], u95 = ci[2,2])
@@ -51,7 +52,7 @@ g2 <- ggplot(effects) +
   geom_errorbarh(height=0, size=0.2) +
   geom_point(shape=21, color="black", fill="white", size=0.45, stroke=0.2) +
   geom_vline(xintercept=0, linetype=2, color="red", size=0.2) +
-  scale_x_continuous("SD change in log-biomarker", limits=c(-0.001, 0.0035), breaks=c(-0.001, 0, 0.003)) + 
+  scale_x_continuous("SD change in log-biomarker", limits=c(-0.015, 0.065), breaks=c(-0.01, 0, 0.03, 0.06)) + 
   ylab("") +
   theme_bw() +
   theme(axis.text.x=element_text(size=6), axis.title.x=element_text(size=7),
@@ -79,10 +80,9 @@ g3 <- ggplot(gg_dt) +
         legend.position="none"
   ) 
 
-
 # Show more dramatic example using age, sex, and bmi.
-asb <- fread("data/age_sex_bmi_adj/adjusted_vs_recomputed.txt")
-asb[, adj_no_rederive := as.numeric(adj_no_rederive)]
+##' asb <- fread("data/age_sex_bmi_adj/adjusted_vs_recomputed.txt")
+##' asb[, adj_no_rederive := as.numeric(adj_no_rederive)]
 
 gg_dt <- asb[variable == "HDL_PL" & !is.na(adj) & !is.na(adj_no_rederive)]
  
@@ -135,13 +135,12 @@ g3 <- ggplot(gg_dt) +
   rasterize(geom_point(shape=21, color="black", size=0.45, stroke=0.2)) +
   geom_hline(yintercept=0, linetype=2, color="red", size=0.2) +
   scale_x_continuous(name="Post-QC value", limits=c(0,1), breaks=c(0, 0.5, 1)) +
-  scale_y_continuous(name="Adj - postQC", limits=c(-0.0051, 0.015), breaks=c(-0.005, 0, 0.005, 0.010, 0.015)) +
+  scale_y_continuous(name="Adj - postQC", limits=c(-0.005, 0.015), breaks=c(-0.005, 0, 0.005, 0.01, 0.015)) +
   scale_fill_gradientn(name="Sample degradation", colors=pal, limits=c(0, 151)) +
   theme_bw() +
   theme(axis.text.x=element_text(size=6), axis.title.x=element_text(size=7),
         axis.text.y=element_text(size=6), axis.title.y=element_text(size=7),
         strip.background=element_blank(), strip.text=element_text(size=7), 
-        legend.text=element_text(size=6), legend.title=element_text(size=7),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
         legend.position="bottom"
   ) + guides(fill = guide_colorbar(title.position="top"))
