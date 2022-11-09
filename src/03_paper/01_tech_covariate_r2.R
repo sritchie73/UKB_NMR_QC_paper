@@ -169,10 +169,11 @@ tech_r2[, print_name := factor(print_name, levels=rev(c(
   )))]
 
 # Plot variance explained in raw data by technical print_names
-g <- ggplot(tech_r2[data != "Post-QC data excluding outlier plates"]) +  # redundant
+g <- ggplot(tech_r2[data != "Post-QC data" & r2 < 0.12]) +  # redundant
   aes(x = pct, y = print_name, fill = print_name) +
-  facet_wrap(~ data) +
-  xlab("Variance explained (%)") + ylab("") +
+  facet_wrap(~ data, scales="free_x") +
+  scale_x_continuous("Variance explained (%)") +
+  ylab("") +
   geom_boxplot(outlier.size=0.6, color="black", size=0.3, outlier.stroke=0, outlier.color="#525252") +
   geom_vline(xintercept=1, linetype=2, color="red") +
   theme_bw() +
@@ -182,16 +183,21 @@ g <- ggplot(tech_r2[data != "Post-QC data excluding outlier plates"]) +  # redun
         strip.background=element_blank(), strip.text=element_text(size=7, face=2))
 ggsave(g, width=7.2, height=3.6, file="paper_output/tech_r2_boxplot.pdf")
 
-# Get the maximum variance explained by any factor in the raw data for each biomarker and make a density plot
+# Get the maximum variance explained by any factor in the raw data for each biomarker and make a histogram
 r2_max <- tech_r2[data == "Raw data", .SD[which.max(r2)], by=.(biomarker)]
 
 g <- ggplot(r2_max, aes(x=r2)) +
-  geom_density() + geom_rug() +
-  scale_x_continuous(name="Maximum Variance Explained (%) by any technical covariate in raw data", expand=expansion(mult=0.01)) +
-  ylab("Density") +
+  geom_histogram(breaks=seq(0, r2_max[, ceiling(max(r2)*200)/200], by=0.005)) +
+  geom_vline(xintercept=0.01, linetype=2, color="red") +
+  scale_x_continuous(name="Maximum Variance Explained (%) by any technical covariate in raw data", expand=expansion(mult=0.01),
+    breaks=seq(0, r2_max[, max(r2)], by=0.05)) +
+  ylab("Biomarkers") +
   theme_bw() +
-  theme(panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank(),
+  theme(panel.grid.major.x=element_blank(), panel.grid.minor.x=element_blank(),
         axis.text.x = element_text(size=6), axis.text.y=element_text(size=6),
         axis.title = element_text(size=7))
-ggsave(g, width=7.2, height=1.5, file="paper_output/max_r2_density.pdf")
+ggsave(g, width=7.2, height=1.5, file="paper_output/max_r2_histogram.pdf")
+
+
+
 

@@ -2,6 +2,7 @@ library(data.table)
 library(ggplot2)
 library(ggrastr)
 library(ggthemes)
+library(hexbin) # required for geom_hex to work
 library(palettetown)
 library(cowplot)
 
@@ -34,7 +35,8 @@ make_plots <- function(column, filename) {
 		geom_hex() +
 		scale_fill_gradient(name="Samples", low="#d9d9d9", high="#252525", trans="log10", limits=c(1,10000)) +
     geom_smooth(color="red", size=0.2, method=MASS::rlm) + 
-    ylab("") + xlab("Hours from prep") + 
+    scale_x_log10("Hours from prep") +
+    ylab("") + 
     theme_bw() + 
     theme(axis.text.x=element_text(size=6), axis.text.y=element_text(size=6),
           axis.title.x=element_text(size=7), axis.title.y=element_blank(),

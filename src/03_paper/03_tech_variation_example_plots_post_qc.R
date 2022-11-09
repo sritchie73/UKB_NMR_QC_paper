@@ -1,6 +1,7 @@
 library(data.table)
 library(ukbnmr)
 library(ggplot2)
+library(hexbin) # required for geom_hex to work
 library(ggrastr)
 library(ggthemes)
 library(cowplot)
@@ -81,7 +82,7 @@ g <- ggplot(his, aes(x=sample_degredation_time, y=adj5)) +
 	scale_fill_gradient(name="Samples", low="#d9d9d9", high="#252525", trans="log10", limits=c(1,10000)) +
 	geom_smooth(color="red", size=0.2, method=MASS::rlm) +
 	ylab("Histidine (mmol/L)") +
-	xlab("Sample degradation time (hours from sample prep to measurement") +
+	scale_x_log10("Sample degradation time (hours from sample prep to measurement") +
 	theme_bw() +
 	theme(axis.text=element_text(size=6), axis.title=element_text(size=7),
 				strip.background=element_blank(), strip.text=element_text(size=6),

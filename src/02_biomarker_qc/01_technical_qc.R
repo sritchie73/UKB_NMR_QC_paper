@@ -43,10 +43,10 @@ raw[sinfo[!(removed)], on = .(sample_id, plate_id, plate_position, visit, spectr
     c("sample_degredation", "plate_row", "plate_column") := .(prep_to_measured, well_row, well_column)]
 
 #################################################################
-# Step 1 - Adjust for sample degredation
+# Step 1 - Adjust for sample degredation (on log scale)
 #################################################################
 
-raw[, log_adj1 := rlm(log_value ~ sample_degredation)$residuals, by=.(variable)]
+raw[, log_adj1 := rlm(log_value ~ log(sample_degredation))$residuals, by=.(variable)]
 
 #################################################################
 # Step 2 - adjust for within plate structure across rows A-H
@@ -85,6 +85,58 @@ raw[sinfo, on = .(sample_id, plate_id, plate_position, visit, spectrometer), pla
 # Adjust
 raw[, log_adj4 := rlm(log_adj3 ~ factor_by_size(plate_measure_bin))$residuals, by=.(variable, spectrometer)]
 
+#############################################################
+# Build version that combines all 4 steps in one regression
+#############################################################
+
+raw[, log_adj_comb := rlm(log_value ~ 
+  log(sample_degredation) + 
+  factor_by_size(plate_row) + 
+  factor_by_size(plate_column) + 
+  factor_by_size(plate_measure_bin) + factor_by_size(spectrometer)
+)$residuals, by=.(variable)]
+
+##################################################
+# Combined regression, stratified by spectrometer
+##################################################
+
+raw[, log_adj_comb_strata := rlm(log_value ~ 
+  log(sample_degredation) + 
+  factor_by_size(plate_row) + 
+  factor_by_size(plate_column) + 
+  factor_by_size(plate_measure_bin)
+)$residuals, by=.(variable, spectrometer)]
+
+##################################################
+# Two-stage regression
+##################################################
+
+raw[, log_adj_ts := rlm(log_value ~
+  log(sample_degredation) +
+  factor_by_size(plate_row) +
+  factor_by_size(plate_column)
+)$residuals, by=.(variable)]
+
+raw[, log_adj_ts := rlm(log_adj_ts ~
+  factor_by_size(plate_measure_bin)
+)$residuals, by=.(variable, spectrometer)]
+
+################################################
+# Try different orders
+################################################
+
+raw[, log_adj4_4321 := log_value]
+raw[, log_adj4_4321 := rlm(log_adj4_4321 ~ factor_by_size(plate_measure_bin))$residuals, by=.(variable, spectrometer)]
+raw[, log_adj4_4321 := rlm(log_adj4_4321 ~ factor_by_size(plate_column))$residuals, by=.(variable)]
+raw[, log_adj4_4321 := rlm(log_adj4_4321 ~ factor_by_size(plate_row))$residuals, by=.(variable)]
+raw[, log_adj4_4321 := rlm(log_adj4_4321 ~ log(sample_degredation))$residuals, by=.(variable)]
+
+raw[, log_adj4_3214 := log_value]
+raw[, log_adj4_3214 := rlm(log_adj4_3214 ~ factor_by_size(plate_column))$residuals, by=.(variable)]
+raw[, log_adj4_3214 := rlm(log_adj4_3214 ~ factor_by_size(plate_row))$residuals, by=.(variable)]
+raw[, log_adj4_3214 := rlm(log_adj4_3214 ~ log(sample_degredation))$residuals, by=.(variable)]
+raw[, log_adj4_3214 := rlm(log_adj4_3214 ~ factor_by_size(plate_measure_bin))$residuals, by=.(variable, spectrometer)]
+
 ################################################
 # Rescale to absolute units
 ################################################
@@ -115,12 +167,22 @@ raw[, adj1 := rescale(log_adj1, log_value), by=.(variable)]
 raw[, adj2 := rescale(log_adj2, log_value), by=.(variable)]
 raw[, adj3 := rescale(log_adj3, log_value), by=.(variable)]
 raw[, adj4 := rescale(log_adj4, log_value), by=.(variable)]
+raw[, adj_comb := rescale(log_adj_comb, log_value), by=.(variable)]
+raw[, adj_comb_strata := rescale(log_adj_comb_strata, log_value), by=.(variable)]
+raw[, adj_ts := rescale(log_adj_ts, log_value), by=.(variable)]
+raw[, adj4_4321 := rescale(log_adj4_4321, log_value), by=.(variable)]
+raw[, adj4_3214 := rescale(log_adj4_3214, log_value), by=.(variable)]
 
 # Remove the small offset applied for biomarkers with 0 values
 raw[log_offset, on = .(variable), adj1 := adj1 - log_offset]
 raw[log_offset, on = .(variable), adj2 := adj2 - log_offset]
 raw[log_offset, on = .(variable), adj3 := adj3 - log_offset]
 raw[log_offset, on = .(variable), adj4 := adj4 - log_offset]
+raw[log_offset, on = .(variable), adj_comb := adj_comb - log_offset]
+raw[log_offset, on = .(variable), adj_comb_strata := adj_comb_strata - log_offset]
+raw[log_offset, on = .(variable), adj_ts := adj_ts - log_offset]
+raw[log_offset, on = .(variable), adj4_4321 := adj4_4321 - log_offset]
+raw[log_offset, on = .(variable), adj4_3214 := adj4_3214 - log_offset]
 
 # Some values that were 0 are now < 0, apply small right shift
 # for these biomarkers (shift is very small, i.e. the impact on 
@@ -128,7 +190,12 @@ raw[log_offset, on = .(variable), adj4 := adj4 - log_offset]
 shift <- raw[,.(adj1=-pmin(0, min(adj1)),
                 adj2=-pmin(0, min(adj2)),
                 adj3=-pmin(0, min(adj3)),
-                adj4=-pmin(0, min(adj4))
+                adj4=-pmin(0, min(adj4)),
+                adj_comb=-pmin(0, min(adj_comb)),
+                adj_comb_strata=-pmin(0, min(adj_comb_strata)),
+                adj_ts=-pmin(0, min(adj_ts)),
+                adj4_4321=-pmin(0, min(adj4_4321)),
+                adj4_3214=-pmin(0, min(adj4_3214))
               ), by=variable]
 
 # Shift
@@ -136,6 +203,11 @@ raw[shift, on = .(variable), adj1 := adj1 + i.adj1]
 raw[shift, on = .(variable), adj2 := adj2 + i.adj2]
 raw[shift, on = .(variable), adj3 := adj3 + i.adj3]
 raw[shift, on = .(variable), adj4 := adj4 + i.adj4]
+raw[shift, on = .(variable), adj_comb := adj_comb + i.adj_comb]
+raw[shift, on = .(variable), adj_comb_strata := adj_comb_strata + i.adj_comb_strata]
+raw[shift, on = .(variable), adj_ts := adj_ts + i.adj_ts]
+raw[shift, on = .(variable), adj4_4321 := adj4_4321 + i.adj4_4321]
+raw[shift, on = .(variable), adj4_3214 := adj4_3214 + i.adj4_3214]
 
 # Output log offset information
 log_offset[shift, on = .(variable), right_shift := adj4]
@@ -166,6 +238,123 @@ fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_ou
 fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits.txt")
 
 ################################################
+# Repeat for combined regression
+################################################
+plate_medians <- raw[!is.na(value), .(value = median(adj_comb)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_comb := adj_comb]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_comb := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_comb_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_comb_regression.txt")
+
+################################################
+# Repeat for combined stratified regression
+################################################
+plate_medians <- raw[!is.na(value), .(value = median(adj_comb_strata)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_comb_strata := adj_comb_strata]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_comb_strata := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_comb_strata_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_comb_strata_regression.txt")
+
+################################################
+# Repeat for two-stage regression
+################################################
+plate_medians <- raw[!is.na(value), .(value = median(adj_ts)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_ts := adj_ts]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_ts := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_ts_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_ts_regression.txt")
+
+################################################
+# Repeat for two-stage regression
+################################################
+plate_medians <- raw[!is.na(value), .(value = median(adj_ts)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_ts := adj_ts]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_ts := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_ts_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_ts_regression.txt")
+
+################################################
+# Repeat for two-stage regression
+################################################
+plate_medians <- raw[!is.na(value), .(value = median(adj_ts)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_ts := adj_ts]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_ts := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_ts_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_ts_regression.txt")
+
+################################################
+# Repeat for reordered regressions
+################################################
+plate_medians <- raw[!is.na(value), .(value = median(adj4_4321)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_4321 := adj4_4321]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_4321 := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_4321_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_4321_regression.txt")
+
+# ----
+plate_medians <- raw[!is.na(value), .(value = median(adj4_3214)), by=.(variable, plate_id)]
+outlier_lim <- plate_medians[,.(lower_lim = mean(value) - sd(value) * sdlim, upper_lim = mean(value) + sd(value) * sdlim), by=variable]
+plate_medians[, outlier := "no"]
+plate_medians[outlier_lim, on = .(variable, value < lower_lim), outlier := "low"]
+plate_medians[outlier_lim, on = .(variable, value > upper_lim), outlier := "high"]
+
+# Remove outlier plates
+raw[, adj5_3214 := adj4_3214]
+raw[plate_medians[outlier != "no"], on = .(variable, plate_id), adj5_3214 := NA]
+
+# Write out info
+fwrite(plate_medians, sep="\t", quote=FALSE, file="data/tech_qc/plate_medians_outlier_tagged_3214_regression.txt")
+fwrite(outlier_lim, sep="\t", quote=FALSE, file="data/tech_qc/plate_outlier_limits_3214_regression.txt")
+
+################################################
 # Compute composite and derived biomarkers
 ################################################
 
@@ -175,6 +364,16 @@ adj2 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer 
 adj3 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj3", fill=NA)
 adj4 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj4", fill=NA)
 adj5 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj5", fill=NA)
+adj_comb <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj_comb", fill=NA)
+adj5_comb <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj5_comb", fill=NA)
+adj_comb_strata <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj_comb_strata", fill=NA)
+adj5_comb_strata <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj5_comb_strata", fill=NA)
+adj_ts <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj_ts", fill=NA)
+adj5_ts <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj5_ts", fill=NA)
+adj4_4321 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj4_4321", fill=NA)
+adj5_4321 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj5_4321", fill=NA)
+adj4_3214 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj4_3214", fill=NA)
+adj5_3214 <- dcast(raw, sample_id + visit + plate_id + plate_position + spectrometer ~ variable, value.var="adj5_3214", fill=NA)
 
 # Recompute composite and derived biomarkers
 adj1 <- recompute_derived_biomarkers(adj1)
@@ -182,6 +381,16 @@ adj2 <- recompute_derived_biomarkers(adj2)
 adj3 <- recompute_derived_biomarkers(adj3)
 adj4 <- recompute_derived_biomarkers(adj4)
 adj5 <- recompute_derived_biomarkers(adj5)
+adj_comb <- recompute_derived_biomarkers(adj_comb)
+adj5_comb <- recompute_derived_biomarkers(adj5_comb)
+adj_comb_strata <- recompute_derived_biomarkers(adj_comb_strata)
+adj5_comb_strata <- recompute_derived_biomarkers(adj5_comb_strata)
+adj_ts <- recompute_derived_biomarkers(adj_ts)
+adj5_ts <- recompute_derived_biomarkers(adj5_ts)
+adj4_4321 <- recompute_derived_biomarkers(adj4_4321)
+adj5_4321 <- recompute_derived_biomarkers(adj5_4321)
+adj4_3214 <- recompute_derived_biomarkers(adj4_3214)
+adj5_3214 <- recompute_derived_biomarkers(adj5_3214)
 
 # Melt to long
 adj1 <- melt(adj1, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj1")
@@ -189,15 +398,36 @@ adj2 <- melt(adj2, id.vars=c("sample_id", "visit", "plate_id", "plate_position",
 adj3 <- melt(adj3, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj3")
 adj4 <- melt(adj4, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj4")
 adj5 <- melt(adj5, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj5")
+adj_comb <- melt(adj_comb, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj_comb")
+adj5_comb <- melt(adj5_comb, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj5_comb")
+adj_comb_strata <- melt(adj_comb_strata, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj_comb_strata")
+adj5_comb_strata <- melt(adj5_comb_strata, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj5_comb_strata")
+adj_ts <- melt(adj_ts, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj_ts")
+adj5_ts <- melt(adj5_ts, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj5_ts")
+adj4_4321 <- melt(adj4_4321, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj4_4321")
+adj5_4321 <- melt(adj5_4321, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj5_4321")
+adj4_3214 <- melt(adj4_3214, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj4_3214")
+adj5_3214 <- melt(adj5_3214, id.vars=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer"), value.name="adj5_3214")
 
 # Combine into single data.table
 adj <- merge(adj1, adj2, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
 adj <- merge(adj, adj3, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
 adj <- merge(adj, adj4, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
 adj <- merge(adj, adj5, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj_comb, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj5_comb, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj_comb_strata, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj5_comb_strata, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj_ts, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj5_ts, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj4_4321, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj5_4321, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj4_3214, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
+adj <- merge(adj, adj5_3214, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"))
 
 # Add in values prior to rescaling:
-log_adj <- raw[,.(sample_id, visit, plate_id, plate_position, spectrometer, variable=as.vector(variable), log_adj1, log_adj2, log_adj3, log_adj4)]
+log_adj <- raw[,.(sample_id, visit, plate_id, plate_position, spectrometer, variable=as.vector(variable), 
+  log_adj1, log_adj2, log_adj3, log_adj4, log_adj_comb, log_adj_comb_strata, log_adj_ts, log_adj4_4321, log_adj4_3214)]
 adj <- merge(log_adj, adj, by=c("sample_id", "visit", "plate_id", "plate_position", "spectrometer", "variable"), all.y=TRUE)
 
 # Also get version of raw data with rederived biomarkers

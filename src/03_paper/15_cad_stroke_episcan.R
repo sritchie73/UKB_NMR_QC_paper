@@ -24,11 +24,11 @@ dat <- dat[sinfo[,.(sample_id, visit)], on = .(sample_id, visit)]
 dat <- dat[visit == "Main Phase"]
 
 # Load in curated CAD and Stroke endpoints
-cad <- fread("data/my_curated_phenotypes/endpoints/output/Hard_CAD/Hard_CAD_events_and_followup.txt")
+cad <- fread("data/my_curated_phenotypes/deprecated/endpoints/output/Hard_CAD/Hard_CAD_events_and_followup.txt")
 cad <- cad[visit == 0]
 dat[cad, on = .(eid_7439=eid), c("CAD_event", "CAD_follow", "CAD_prevalent") := .(inci_event, inci_followup, prev_event)]
 
-stroke <- fread("data/my_curated_phenotypes/endpoints/output/CEU_Stroke/CEU_Stroke_events_and_followup.txt")
+stroke <- fread("data/my_curated_phenotypes/deprecated/endpoints/output/CEU_Stroke/CEU_Stroke_events_and_followup.txt")
 stroke <- stroke[visit == 0]
 dat[stroke, on = .(eid_7439=eid), c("Stroke_event", "Stroke_follow", "Stroke_prevalent") := .(inci_event, inci_followup, prev_event)]
 
@@ -62,7 +62,7 @@ dat[variable %in% nmr_info[Units == "%", Biomarker], adj5 := logit(adj5)]
 dat[variable %in% nmr_info[Units != "%", Biomarker], adj5 := log(adj5)]
 
 # Load in information about additional covariates from departmental curated dataset
-ext <- read.dta13("data/ceu_curated_phenotypes/20210302/STATA/analysis.dta")
+ext <- read.dta13("data/ceu_curated_phenotypes/20210901/STATA/analysis.dta")
 setDT(ext)
 ext <- ext[,.(eid_7439=idno, age=ages, sex, lipid_med = lipdbin)]
 dat[, eid_7439 := as.character(eid_7439)]

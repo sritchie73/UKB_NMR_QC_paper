@@ -35,7 +35,7 @@ factor_by_size <- function(x) {
 }
 
 # Do the four adjustments
-new[, adj := rlm(log_raw ~ sample_degredation)$residuals, by=.(variable)]
+new[, adj := rlm(log_raw ~ log(sample_degredation))$residuals, by=.(variable)]
 new[, adj := rlm(adj ~ factor_by_size(plate_row))$residuals, by=.(variable)]
 new[, adj := rlm(adj ~ factor_by_size(plate_column))$residuals, by=.(variable)]
 new[, adj := rlm(adj ~ factor_by_size(plate_measure_bin))$residuals, by=.(variable, spectrometer)]

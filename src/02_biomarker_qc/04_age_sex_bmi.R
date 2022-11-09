@@ -20,14 +20,14 @@ dat <- dat[sinfo[(in_ukb_raw) & !(sample_removed), .(sample_id, visit)], on = .(
 
 # Load in information about participant age and BMI from departmental
 # curated dataset.
-ext_rep <- read.dta13("data/ceu_curated_phenotypes/20210302/STATA/repeats.dta")
+ext_rep <- read.dta13("data/ceu_curated_phenotypes/20210901/STATA/repeats.dta")
 setDT(ext_rep)
 pheno <- ext_rep[,.(eid_7439=idno, visit=repno, age=ages_rep, bmi=bmi_rep)]
 pheno <- pheno[visit %in% c(0,1)]
 pheno[, visit := ifelse(visit == 0, "Main Phase", "Repeat Assessment")]
 
 # Load in participant sex
-sex <- read.dta13("data/ceu_curated_phenotypes/20210302/STATA/analysis.dta")
+sex <- read.dta13("data/ceu_curated_phenotypes/20210901/STATA/analysis.dta")
 setDT(sex)
 sex <- sex[,.(eid_7439=idno, sex)]
 
