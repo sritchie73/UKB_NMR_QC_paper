@@ -79,9 +79,11 @@ missing <- missing[,.(uid, sample_id, plate_id, plate_position, visit, spectrome
 if (missing[,.N] > 0) {
   fwrite(missing, sep="\t", quote=FALSE, file="pkg_check/samples_missing_not_withdrawals_from_ukb.txt")
 }
+stop()
 
 # Now, Load the data we adjusted for technical variation in this project
-adj <- fread("data/tech_qc/postqc_excluding_outlier_plates.txt")
+adj <
+adj <- fread("data/my_curated_phenotypes/postqc_excluding_outlier_plates.txt")
 
 # Adjust the raw UKB data using our package
 ukb_raw <- fread("data/raw/ukbiobank/extracted/nightingale.csv")
