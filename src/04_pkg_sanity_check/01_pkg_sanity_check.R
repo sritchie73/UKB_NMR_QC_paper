@@ -79,22 +79,19 @@ missing <- missing[,.(uid, sample_id, plate_id, plate_position, visit, spectrome
 if (missing[,.N] > 0) {
   fwrite(missing, sep="\t", quote=FALSE, file="pkg_check/samples_missing_not_withdrawals_from_ukb.txt")
 }
-stop()
 
 # Now, Load the data we adjusted for technical variation in this project
-adj <
-adj <- fread("data/my_curated_phenotypes/postqc_excluding_outlier_plates.txt")
+adj <- fread("data/tech_qc/postqc_excluding_outlier_plates.txt")
 
-# Adjust the raw UKB data using our package
-ukb_raw <- fread("data/raw/ukbiobank/extracted/nightingale.csv")
-pkg <- remove_technical_variation(ukb_raw)
+# Get output from package applied to most recent raw data released by UKB
+ukb <- fread("data/my_curated_phenotypes/NMR_metabolomics/output/nmr_techadj.txt")
+adj_sinfo <- fread("data/my_curated_phenotypes/NMR_metabolomics/output/sample_processing_information.txt")
 
 # Harmonize and compare key sample processing/QC variables:
 sinfo[, visit_index := ifelse(visit == "Main Phase", 0L, 1L)]
 adj_bin <- fread("data/tech_qc/sample_information.txt")
 sinfo[adj_bin, on = .(uid=raw_row_id), plate_measured_bin := plate_measured_bin]
 
-adj_sinfo <- copy(pkg$sample_processing)
 adj_sinfo[sinfo[(in_ukb_raw)], on = .(eid=eid_7439, visit_index), 
   c("Prerelease.Sample.ID", "Prerelease.Plate.ID", "Prerelease.Plate.Position", "Prerelease.Spectrometer", 
     "Prerelease.Prep.to.Measure.Duration", "Prerelease.Spectrometer.Date.Bin") :=
@@ -146,7 +143,6 @@ adj[, visit_index := ifelse(visit == "Main Phase", 0L, 1L)]
 adj <- melt(adj, id.vars=c("eid_7439", "visit_index", "visit", "sample_id", "plate_id", "plate_position", "spectrometer"),
             variable.name="biomarker", value.name="prerelease")
 
-ukb <- copy(pkg$biomarkers)
 ukb[sinfo[(in_ukb_raw)], on = .(eid=eid_7439, visit_index), c("visit", "sample_id", "plate_id", "plate_position", "spectrometer") :=
     .(visit, sample_id, plate_id, plate_position, spectrometer)]
 ukb <- melt(ukb, id.vars=c("eid", "visit_index", "visit", "sample_id", "plate_id", "plate_position", "spectrometer"),
