@@ -48,7 +48,7 @@ Here we list the software and versions used throughout the pipeline. You will ne
 - R version 4.0.3 (2020-10-10)
 - R packages:
   - data.table version 1.13.2
-  - ukbnmr version 0.3.0 # Currently installable via `remotes::install_github("sritchie73/ukbnmr", ref="development")`
+  - ukbnmr version 0.7.0 # Currently installable via `remotes::install_github("sritchie73/ukbnmr")`
 - UK Biobank's ukbconv tool (download from http://biobank.ndph.ox.ac.uk/ukb/download.cgi) stored in `src/ukbtools/`.
 
 #### 2. Biomarker quality control and diagnostic plots
@@ -56,10 +56,11 @@ Here we list the software and versions used throughout the pipeline. You will ne
 - R version 4.0.3 (2020-10-10)
 - R packages:
   - data.table version 1.13.2
-  - ukbnmr version 0.3.0 # Currently installable via `remotes::install_github("sritchie73/ukbnmr", ref="development")`
+  - ukbnmr version 0.7.0 # Currently installable via `remotes::install_github("sritchie73/ukbnmr")`
   - MASS version 7.3-53
   - ggplot2 version 3.3.2
   - ggthemes version 4.2.4
+  - hexbin version 1.28.2
   - palettetown version 0.1.1
   - readstata13 version 0.9.2
 
@@ -70,11 +71,12 @@ The `readstata13` package is optional. It is used in `04_age_sex_bmi.R` to load 
 - R version 4.0.3 (2020-10-10)
 - R packages:
   - data.table version 1.13.2
-  - ukbnmr version 0.3.0 # Currently installable via `remotes::install_github("sritchie73/ukbnmr", ref="development")`
+  - ukbnmr version 0.7.0 # Currently installable via `remotes::install_github("sritchie73/ukbnmr")`
   - MASS version 7.3-53
   - ggplot2 version 3.3.2
   - ggrastr version 0.2.3
   - ggnewscale version 0.4.3
+  - hexbin version 1.28.2
   - cowplot version 1.1.0
   - ggthemes version 4.2.4
   - palettetown version 0.1.1
