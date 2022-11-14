@@ -174,5 +174,3 @@ g <- ggplot(adj) +
   )
 ggsave(g, width=width, height=width, units="in", file="pkg_check/prerelease_vs_pkg_adjusted_values.png")
 
-
-
